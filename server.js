@@ -20,30 +20,43 @@ app.post("/generate-image", async (req, res) => {
       return res.status(400).json({ error: "Prompt is required." });
     }
 
+    // Load Gemini model
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
     });
 
-    const result = await model.generateImage(prompt);
-    const image = result.output[0].url;
-
-    return res.status(200).json({
-      success: true,
-      prompt,
-      image,
+    // Generate image (Gemini returns base64)
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: "image/png",
+      },
     });
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
+    const imageBase64 =
+      result.response.candidates[0].content.parts[0].inlineData.data;
+
+    res.json({
+      success: true,
+      prompt,
+      image: "data:image/png;base64," + imageBase64,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
       success: false,
       message: "Image generation failed",
-      error: error.message,
+      error: err.message,
     });
   }
 });
 
-// Start Server
 app.listen(3000, () => {
   console.log("Gemini Image API running on port 3000");
 });
