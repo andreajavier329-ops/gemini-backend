@@ -1,3 +1,20 @@
+import express from "express";
+import fetch from "node-fetch";
+import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// TEST ROUTE
+app.get("/", (req, res) => {
+  res.send("Gemini backend is running.");
+});
+
+// IMAGE GENERATION ROUTE
 app.post("/generate-image", async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -11,28 +28,23 @@ app.post("/generate-image", async (req, res) => {
         process.env.GEMINI_API_KEY,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: {
-            text: prompt,
-          },
+          prompt: { text: prompt },
         }),
       }
     );
 
     const data = await response.json();
 
-    if (!data?.generatedImages || data.generatedImages.length === 0) {
+    if (!data.generatedImages || data.generatedImages.length === 0) {
       return res.status(500).json({
         success: false,
-        message: "No image returned by Gemini",
+        message: "No image returned",
         error: data,
       });
     }
 
-    // Base64 image data returned directly
     const base64 = data.generatedImages[0].image.base64Data;
 
     res.json({
@@ -40,7 +52,7 @@ app.post("/generate-image", async (req, res) => {
       image: "data:image/png;base64," + base64,
     });
   } catch (err) {
-    console.error("Image generation error:", err);
+    console.error("Image error:", err);
     res.status(500).json({
       success: false,
       message: "Image generation failed",
@@ -48,3 +60,7 @@ app.post("/generate-image", async (req, res) => {
     });
   }
 });
+
+// SERVER START
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log("Server running on port " + port));
